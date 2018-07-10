@@ -133,7 +133,6 @@
     <Compile Include="WSService\WSBaseServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Content\1011.mp3" />
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.min.css" />
     <Content Include="favicon.ico" />
@@ -142,9 +141,6 @@
     <Content Include="Content\Site.css" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
-    <Content Include="Content\example_11025.ogg" />
-    <Content Include="Content\example_16000.ogg" />
-    <Content Include="Content\example_8000.ogg" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
     <Content Include="Scripts\jquery-1.10.2.min.js" />
