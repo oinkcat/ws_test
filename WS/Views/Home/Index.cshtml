@@ -1,0 +1,32 @@
+﻿@{
+    ViewBag.Title = "Realtime test";
+}
+
+<h2 class="h2">
+    WebSocket realtime test
+    <span class="pull-right">
+        <span class="label label-success state-ok hidden">CONNECTED</span>
+        <span class="label label-danger state-err hidden">ERROR!</span>
+    </span>
+</h2>
+<hr />
+
+<section class="main row">
+    <div class="col-md-8">
+        <canvas width="620" height="400" id="field"></canvas>
+    </div>
+    <div class="col-md-4">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Connected clients
+            </div>
+            <div class="panel-body">
+                Waiting...
+            </div>
+        </div>
+    </div>
+</section>
+
+@section scripts {
+    <script type="text/javascript" src="@Url.Content("~/Scripts/WS/client.js")"></script>
+}
