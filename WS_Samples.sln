@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2013 for Web
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.705
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WS", "WS\WS.csproj", "{3F8DD3BC-157F-492C-8863-DA343F4A0F02}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WS_Entities", "WS\WS_Entities.csproj", "{3F8DD3BC-157F-492C-8863-DA343F4A0F02}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +18,8 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97FFD892-321F-4F6C-B21D-8F535C784E6B}
 	EndGlobalSection
 EndGlobal
