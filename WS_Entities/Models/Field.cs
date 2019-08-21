@@ -35,7 +35,11 @@ namespace WS.Models
                 var rnd = new Random();
                 client.Position = new Vector(rnd.Next(Size), rnd.Next(Size));
             }
-            Clients.Add(client);
+
+            lock(Clients)
+            {
+                Clients.Add(client);
+            }
         }
 
         /// <summary>
@@ -44,7 +48,10 @@ namespace WS.Models
         /// <param name="client">Client to remove</param>
         public void RemoveClient(Client client)
         {
-            Clients.Remove(client);
+            lock(Clients)
+            {
+                Clients.Remove(client);
+            }
         }
 
         /// <summary>

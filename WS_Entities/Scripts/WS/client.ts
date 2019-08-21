@@ -3,9 +3,6 @@ declare var $: JQueryStatic;
 
 /** Realtime WebSocket test client */
 module Client {
-
-    const WS_ENDPOINT: string = "ws://localhost:1234/ws/";
-
     const SESSION_START_TOKEN: string = "start";
 
     /** Tell that functionality is not implemented */
@@ -610,7 +607,8 @@ module Client {
         field.render();
 
         // Connect to server
-        ws = new WebSocket(WS_ENDPOINT);
+        const serverAddress = $('#wsAddress').val();
+        ws = new WebSocket(serverAddress);
         ws.onopen = onConnect;
         ws.onmessage = onDataReceived;
         ws.onerror = onConnectionError;

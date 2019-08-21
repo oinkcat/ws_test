@@ -15,6 +15,7 @@ var __extends = (this && this.__extends) || (function () {
 var Client;
 (function (Client) {
     var SESSION_START_TOKEN = "start";
+    var WS_ENDPOINT;
     /** Tell that functionality is not implemented */
     var NotImplementedError = /** @class */ (function (_super) {
         __extends(NotImplementedError, _super);
@@ -490,8 +491,8 @@ var Client;
         if (state != null) {
             var reader_1 = new FileReader();
             reader_1.onload = function () {
-                var rcvBuffer = reader_1.result;
-                var receivedMsg = Message.createFromBuffer(rcvBuffer);
+                var recvBuffer = reader_1.result;
+                var receivedMsg = Message.createFromBuffer(recvBuffer);
                 processMessage(receivedMsg);
             };
             reader_1.readAsArrayBuffer(e.data);
@@ -509,8 +510,8 @@ var Client;
         field = new FieldView($('#field'));
         field.render();
         // Connect to server
-        var serverAddress = $('#wsAddress').val();
-        ws = new WebSocket(serverAddress);
+        WS_ENDPOINT = $("#wsAddress").val().replace("http:", "ws:");
+        ws = new WebSocket(WS_ENDPOINT);
         ws.onopen = onConnect;
         ws.onmessage = onDataReceived;
         ws.onerror = onConnectionError;

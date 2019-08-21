@@ -8,12 +8,12 @@
     <ProductVersion>
     </ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{3F8DD3BC-157F-492C-8863-DA343F4A0F02}</ProjectGuid>
+    <ProjectGuid>{AC1651CE-B08F-4CA7-99F9-6A5164FA79B0}</ProjectGuid>
     <ProjectTypeGuids>{349c5851-65df-11da-9384-00065b846f21};{fae04ec0-301f-11d3-bf4b-00c04f79efbc}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>WS</RootNamespace>
-    <AssemblyName>WS_Entities</AssemblyName>
+    <AssemblyName>WS_RTC</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MvcBuildViews>false</MvcBuildViews>
     <UseIISExpress>true</UseIISExpress>
@@ -119,17 +119,8 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
-    <Compile Include="Models\Box.cs" />
-    <Compile Include="Models\Client.cs" />
-    <Compile Include="Models\Field.cs" />
-    <Compile Include="WSService\Messages.cs" />
-    <Compile Include="Models\Vector.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils\ByteArrayBuilder.cs" />
-    <Compile Include="Utils\ByteArrayReader.cs" />
-    <Compile Include="WSService\BotsHandler.cs" />
-    <Compile Include="WSService\IMessage.cs" />
-    <Compile Include="WSService\OnlineActivity.cs" />
+    <Compile Include="WSService\RTCTest.cs" />
     <Compile Include="WSService\WSBaseServer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -141,6 +132,7 @@
     <Content Include="Content\Site.css" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
+    <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Scripts\jquery-1.10.2.intellisense.js" />
     <Content Include="Scripts\jquery-1.10.2.js" />
     <Content Include="Scripts\jquery-1.10.2.min.js" />
@@ -163,11 +155,13 @@
     <Content Include="Views\_ViewStart.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
-    <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Scripts\jquery-1.10.2.min.map" />
+    <Content Include="Views\Home\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Models\" />
+    <Folder Include="Utils\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff" />
@@ -177,7 +171,7 @@
   </ItemGroup>
   <ItemGroup>
     <TypeScriptCompile Include="Scripts\typing\jquery.d.ts" />
-    <TypeScriptCompile Include="Scripts\WS\client.ts" />
+    <TypeScriptCompile Include="Scripts\WS\rtc_test.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -199,7 +193,7 @@
           <AutoAssignPort>True</AutoAssignPort>
           <DevelopmentServerPort>50623</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost:50595/</IISUrl>
+          <IISUrl>http://localhost:8888</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>

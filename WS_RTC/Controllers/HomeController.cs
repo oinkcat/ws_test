@@ -14,9 +14,9 @@ namespace WS.Controllers
         /// </summary>
         public ActionResult Index()
         {
-            OnlineActivity.Instance.Start();
+            RTCTest.Instance.Start();
 
-            string serverAddress = OnlineActivity.Instance.EndpointAddress;
+            string serverAddress = RTCTest.Instance.ActualEndpointAddress;
             string addressForClient = serverAddress.Replace("http:", "ws:");
 
             return View(addressForClient as object);

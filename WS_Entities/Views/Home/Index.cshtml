@@ -1,4 +1,5 @@
-﻿@{
+﻿@model string
+@{
     ViewBag.Title = "Realtime test";
 }
 
@@ -26,6 +27,8 @@
         </div>
     </div>
 </section>
+
+@Html.Hidden("wsAddress", Model)
 
 @section scripts {
     <script type="text/javascript" src="@Url.Content("~/Scripts/WS/client.js")"></script>

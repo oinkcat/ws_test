@@ -1,0 +1,58 @@
+﻿@model string
+@{
+    ViewBag.Title = "RTC test";
+
+    string scriptUrl = Url.Content("~/Scripts/WS/rtc_test.js");
+}
+
+<h2>
+    WebSocket WebRTC test
+    <span class="pull-right">
+        <span class="label label-success state-ok hidden">CONNECTED</span>
+        <span class="label label-danger state-err hidden">ERROR!</span>
+    </span>
+</h2>
+<hr />
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Connected clients
+            </div>
+            <div class="panel-body">
+                <p class="controls">
+                    <button class="btn btn-default">
+                        <span class="glyphicon glyphicon-asterisk"></span>
+                        Connect
+                    </button>
+                </p>
+
+                <div id="audioControls">
+                    <p class="my-audio hidden">
+                        <h4>My audio</h4>
+                        <audio id="myAudio" controls="controls"></audio>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-7">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Messages log
+            </div>
+            <div class="panel-body">
+                <div class="pre-scrollable" id="messages">
+                    <div>Press Connect button</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.Hidden("wsAddress", Model)
+
+@section Scripts {
+    <script type="text/javascript" src="@scriptUrl"></script>
+}

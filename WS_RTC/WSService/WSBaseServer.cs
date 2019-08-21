@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,11 +18,6 @@ namespace WS.WSService
         private const int MessageSize = 16384;
 
         /// <summary>
-        /// WebSocket endpoint address
-        /// </summary>
-        public abstract string EndpointAddress { get; }
-
-        /// <summary>
         /// Is server running
         /// </summary>
         protected bool running;
@@ -36,10 +33,20 @@ namespace WS.WSService
         protected virtual void StartTasks() { }
 
         /// <summary>
+        /// WebSocket endpoint address
+        /// </summary>
+        protected abstract string EndpointAddress { get; }
+
+        /// <summary>
         /// Serve new connected client
         /// </summary>
         /// <param name="clientSocket">Connected client's socket</param>
         protected abstract void ServeClient(WebSocket clientSocket);
+
+        /// <summary>
+        /// Actual WebSocket endpoint
+        /// </summary>
+        public string ActualEndpointAddress { get; set; }
 
         /// <summary>
         /// Start the server
@@ -49,6 +56,7 @@ namespace WS.WSService
             if(!running)
             {
                 running = true;
+                ActualEndpointAddress = GetMyEndpointAddress();
 
                 var option = TaskCreationOptions.LongRunning;
                 serverTask = Task.Factory.StartNew(new Func<Task>(StartServer), option);
@@ -81,21 +89,43 @@ namespace WS.WSService
             await s.SendAsync(textBuffer, WebSocketMessageType.Text, true, ct);
         }
 
-        // Send binary message to client
-        protected async Task SendMessage(WebSocket s, IMessage msg)
+        // Get endpoint address from address template
+        private string GetMyEndpointAddress()
         {
-            var buffer = new ArraySegment<byte>(msg.ToBytes());
-            var ct = CancellationToken.None;
-            Monitor.Enter(s);
-            await s.SendAsync(buffer, WebSocketMessageType.Binary, true, ct);
-            Monitor.Exit(s);
+            if(EndpointAddress.StartsWith("http://"))
+            {
+                string[] addrParts = EndpointAddress.Split('/');
+                string[] ipAndPort = addrParts[2].Split(':');
+                string ip = ipAndPort[0];
+
+                if(ip.EndsWith("*"))
+                {
+                    string prefix = ip.Substring(0, ip.Length - 1);
+                    string myIpAddr = Dns.GetHostAddresses(Dns.GetHostName())
+                        .First(addr => addr.ToString().StartsWith(prefix))
+                        .ToString();
+                    ipAndPort[0] = myIpAddr;
+
+                    addrParts[2] = String.Concat(ipAndPort[0], ':', ipAndPort[1]);
+
+                    return String.Join("/", addrParts);
+                }
+                else
+                {
+                    return EndpointAddress;
+                }
+            }
+            else
+            {
+                throw new FormatException("Invalid Endpoint address!");
+            }
         }
 
         // Create server and wait for clients
         private async Task StartServer()
         {
             var listener = new HttpListener();
-            listener.Prefixes.Add(EndpointAddress);
+            listener.Prefixes.Add(ActualEndpointAddress);
             listener.Start();
 
             while (running)
