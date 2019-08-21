@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using WS.WSService;
+using WS.Models;
 using WS.Utils;
 
-namespace WS.Models
+namespace WS.WSService
 {
     /// <summary>
     /// Type of message

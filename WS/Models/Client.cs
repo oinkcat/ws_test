@@ -5,7 +5,7 @@ using System.Linq;
 namespace WS.Models
 {
     /// <summary>
-    /// WebSocket test client abstraction
+    /// Simple moving entity
     /// </summary>
     public class Client
     {

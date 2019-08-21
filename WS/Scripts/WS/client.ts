@@ -589,7 +589,8 @@ module Client {
         if (state != null) {
             let reader = new FileReader();
             reader.onload = () => {
-                let receivedMsg = Message.createFromBuffer(reader.result);
+                let rcvBuffer = <ArrayBuffer>reader.result;
+                let receivedMsg = Message.createFromBuffer(rcvBuffer);
                 processMessage(receivedMsg);
             };
             reader.readAsArrayBuffer(e.data);

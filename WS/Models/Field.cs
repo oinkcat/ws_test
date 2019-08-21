@@ -5,7 +5,7 @@ using System.Linq;
 namespace WS.Models
 {
     /// <summary>
-    /// Entire field
+    /// Field filled with boxes and moving entities
     /// </summary>
     public class Field
     {
