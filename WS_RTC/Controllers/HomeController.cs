@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Net;
 using System.Web.Mvc;
 using WS.WSService;
 
@@ -14,12 +15,23 @@ namespace WS.Controllers
         /// </summary>
         public ActionResult Index()
         {
-            RTCTest.Instance.Start();
+            string serverAddress = $"ws://{Request.Url.Authority}/Home/WS";
 
-            string serverAddress = RTCTest.Instance.ActualEndpointAddress;
-            string addressForClient = serverAddress.Replace("http:", "ws:");
+            return View(serverAddress as object);
+        }
 
-            return View(addressForClient as object);
+        /// <summary>
+        /// Client WebSocket address
+        /// </summary>
+        public HttpStatusCodeResult WS()
+        {
+            if (HttpContext.IsWebSocketRequest)
+            {
+                var handler = new RTCTest();
+                HttpContext.AcceptWebSocketRequest(handler.HandleClient);
+            }
+
+            return new HttpStatusCodeResult(HttpStatusCode.SwitchingProtocols);
         }
     }
 }

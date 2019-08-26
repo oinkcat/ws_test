@@ -6,6 +6,7 @@ var RTCTest;
     var MSG_OFFER = "offer";
     var MSG_ANSWER = "answer";
     var MSG_ICE = "ice";
+    var MSG_DISCONNECTED = "disconnected";
     /** P2P audio connection */
     var RTCAudioConnection = /** @class */ (function () {
         function RTCAudioConnection(remoteId, myStream) {
@@ -17,7 +18,11 @@ var RTCTest;
             };
             // WebRTC configuration
             this.rtcConfig = {
-                iceServers: []
+                iceServers: [{
+                        urls: "turn:176.122.22.34",
+                        username: "testuser",
+                        credential: "testpass"
+                    }]
             };
             // Create connection
             this.connection = new RTCPeerConnection(this.rtcConfig);
@@ -25,6 +30,8 @@ var RTCTest;
             this.connection.onicecandidate = iceHandler;
             var stateHandler = this.onStateChange.bind(this);
             this.connection.oniceconnectionstatechange = stateHandler;
+            this.connection.onsignalingstatechange = stateHandler;
+            this.connection.onconnectionstatechange = stateHandler;
             var trackHandler = this.onRemoteTrack.bind(this);
             this.connection.addEventListener("track", trackHandler);
             this.connection.addEventListener("addstream", trackHandler);
@@ -39,13 +46,21 @@ var RTCTest;
                 });
             }
         }
+        Object.defineProperty(RTCAudioConnection.prototype, "debugId", {
+            get: function () {
+                return "*" + this.remoteId.substr(23);
+            },
+            enumerable: true,
+            configurable: true
+        });
         /** Send offer to remote party */
         RTCAudioConnection.prototype.sendOffer = function () {
             var _this = this;
+            var baseMsg = "RTC, " + this.debugId + ":";
             this.connection.createOffer(this.offerOption)
                 .then(function (sdp) {
                 // Local descriptor created
-                logMessage("Offer created!");
+                logMessage(baseMsg + " Offer created");
                 _this.connection.setLocalDescription(sdp);
                 // Send offer message
                 var offerMsg = {
@@ -55,7 +70,10 @@ var RTCTest;
                 };
                 sendMessage(offerMsg);
             })
-                .catch(function () { return logMessage("Failed to create offer!"); });
+                .catch(function () {
+                var msg = baseMsg + " Failed to create offer!";
+                return logMessage(msg);
+            });
         };
         /**
          * Set received answer
@@ -63,9 +81,10 @@ var RTCTest;
          */
         RTCAudioConnection.prototype.setRemoteAnswer = function (answerData) {
             var remoteSdp = new RTCSessionDescription(answerData);
+            var baseMsg = "RTC, " + this.debugId + ": Remote description";
             this.connection.setRemoteDescription(remoteSdp)
-                .then(function () { return logMessage("Remote description set!"); })
-                .catch(function () { return logMessage("Remote description set error!"); });
+                .then(function () { return logMessage(baseMsg + " set!"); })
+                .catch(function () { return logMessage(baseMsg + " set error!"); });
         };
         /**
          * Set new ICE candidate data
@@ -81,13 +100,17 @@ var RTCTest;
         RTCAudioConnection.prototype.setRemoteOffer = function (offerData) {
             var _this = this;
             var remoteDesc = new RTCSessionDescription(offerData);
+            var baseMsg1 = "RTC, " + this.debugId + ": Remote description";
+            // Set remote description
             this.connection.setRemoteDescription(remoteDesc)
-                .then(function () { return logMessage("Remote description set!"); })
-                .catch(function (e) { return logMessage("Remote descriptor error: " + e); });
+                .then(function () { return logMessage(baseMsg1 + " set!"); })
+                .catch(function (e) { return logMessage(baseMsg1 + " error: " + e); });
+            var baseMsg2 = "RTC, " + this.debugId + ": Answer";
+            // Create answer
             this.connection.createAnswer(this.offerOption)
                 .then(function (answerSdp) {
                 // Answer sdp created
-                logMessage("Answer created!");
+                logMessage(baseMsg2 + " created!");
                 _this.connection.setLocalDescription(answerSdp);
                 var answerMessage = {
                     type: MSG_ANSWER,
@@ -96,27 +119,34 @@ var RTCTest;
                 };
                 sendMessage(answerMessage);
             })
-                .catch(function (e) { return logMessage("Answer error: " + e); });
+                .catch(function (e) { return logMessage(baseMsg2 + " error: " + e); });
+        };
+        /** Remove resources associated with client */
+        RTCAudioConnection.prototype.dispose = function () {
+            this.connection.close();
+            $("#" + this.remoteId).parents(".peer-audio").remove();
         };
         /** Connection state changed */
         RTCAudioConnection.prototype.onStateChange = function (e) {
-            logMessage("New state: " + this.connection.signalingState);
+            var connState = this.connection.connectionState;
+            var signState = this.connection.signalingState;
+            var iceState = this.connection.iceConnectionState;
+            var states = "C: " + connState + ", S: " + signState + ", I: " + iceState;
+            logMessage("RTC, " + this.debugId + ": States: " + states);
         };
         /** Got remote track */
         RTCAudioConnection.prototype.onRemoteTrack = function (e) {
-            var peerAudio = $("<audio controls>").attr("id", this.remoteId);
-            var jControlBlock = $("<p class=peer-audio>")
-                .append($("<h4>").text(this.remoteId))
-                .append(peerAudio);
-            $("#audioControls").append(jControlBlock);
-            this.remoteAudioElem = peerAudio.get(0);
             if (e.stream) {
+                var peerAudio = $("<audio controls>").attr("id", this.remoteId);
+                var jControlBlock = $("<div class=peer-audio>")
+                    .append($("<h4>").text(this.remoteId))
+                    .append(peerAudio);
+                $("#audioControls").append(jControlBlock);
+                this.remoteAudioElem = peerAudio.get(0);
                 this.remoteAudioElem.srcObject = e.stream;
+                this.remoteAudioElem.play();
+                logMessage("RTC, " + this.debugId + ": Got remote track");
             }
-            else {
-                this.remoteAudioElem.srcObject = e.streams[0];
-            }
-            this.remoteAudioElem.play();
         };
         /** On ICE candidate */
         RTCAudioConnection.prototype.onICECandidate = function (e) {
@@ -130,7 +160,7 @@ var RTCTest;
         return RTCAudioConnection;
     }());
     var socket;
-    var labels;
+    var labels; // JQuery
     // Local audio output
     var myAudioElem;
     // Local audio stream
@@ -163,7 +193,15 @@ var RTCTest;
             var newConnection = new RTCAudioConnection(id, localStream);
             newConnection.sendOffer();
             connectionPairs.push(newConnection);
+            logMessage("Me -> " + id + ". Conn. no: " + connectionPairs.length);
         }
+    }
+    /**
+     * Show client's id on page
+     * @param id Local id
+     */
+    function showLocalId(id) {
+        $(".my-audio h4").append("<br/>" + id);
     }
     /**
      * Got answer to sent offer
@@ -194,8 +232,24 @@ var RTCTest;
         var newConnection = new RTCAudioConnection(remoteId, localStream);
         newConnection.setRemoteOffer(offerData);
         connectionPairs.push(newConnection);
+        logMessage(remoteId + " -> Me. Conn. no: " + connectionPairs.length);
     }
-    // Process signalling server message
+    /**
+     * Remove disconnected client's resources
+     * @param remoteId Remote peer's id
+     */
+    function disposeClient(remoteId) {
+        var pairToRemove = getPairById(remoteId);
+        if (pairToRemove != null) {
+            pairToRemove.dispose();
+            connectionPairs.splice(connectionPairs.indexOf(pairToRemove), 1);
+            logMessage("WS: " + pairToRemove.remoteId + " disconnected");
+        }
+    }
+    /**
+     * Process signalling server message
+     * @param msg Message from server
+     */
     function processMessage(msg) {
         var type = msg["Type"];
         var payload = msg["Data"];
@@ -204,6 +258,7 @@ var RTCTest;
             var readyIds = payload;
             if (readyIds.length > 0) {
                 createConnectionPairs(readyIds);
+                showLocalId(remoteId);
             }
         }
         else if (type == MSG_OFFER) {
@@ -215,8 +270,14 @@ var RTCTest;
         else if (type == MSG_ICE) {
             gotICECandidate(remoteId, payload);
         }
+        else if (type == MSG_DISCONNECTED) {
+            disposeClient(remoteId);
+        }
     }
-    // Send message to signalling server
+    /**
+     * Send message to signalling server
+     * @param msg Message to send
+     */
     function sendMessage(msg) {
         socket.send(JSON.stringify(msg));
     }
@@ -228,6 +289,7 @@ var RTCTest;
         localStream = audioStream;
         // Listen local stream
         myAudioElem.srcObject = localStream;
+        myAudioElem.volume = 0.1;
         myAudioElem.play();
         // Show volume control
         $(myAudioElem).parents(".my-audio").removeClass("hidden");
@@ -244,20 +306,20 @@ var RTCTest;
             audio: { sampleRate: 12000 },
             video: false
         }).then(gotLocalStream)
-            .catch(function () { return logMessage("Cannot access microphone!"); });
+            .catch(function () { return logMessage("RTC: Cannot access microphone!"); });
     }
-    // On connection
+    /** On connection */
     function socketConnected() {
-        logMessage("Connected to server!");
+        logMessage("WS: Connected to server!");
         labels.eq(0).removeClass("hidden");
         setTimeout(requestMediaStream, 1000);
     }
-    // On network error
+    /** On network error */
     function socketError() {
-        logMessage("Connection error!");
+        logMessage("WS: Connection error!");
         labels.eq(1).removeClass("hidden");
     }
-    // On receive data from server
+    //** On receive data from server */
     function socketMessage(e) {
         var msg = JSON.parse(e.data);
         processMessage(msg);
@@ -267,22 +329,20 @@ var RTCTest;
         var serverAddress = $("#wsAddress").val();
         socket = new WebSocket(serverAddress);
         socket.onopen = socketConnected;
-        socket.onerror = socketError;
+        // Socket closing is also exception there
+        socket.onerror = socket.onclose = socketError;
         socket.onmessage = socketMessage;
     }
     /** Initialize page UI */
     function initializeUi() {
         labels = $("h2 .label");
         myAudioElem = $("#myAudio")[0];
-        $(".controls .btn-default").on("click", function () {
-            $(this).attr("disabled", "disabled");
-            connectSignallingServer();
-        });
     }
     /** Initialize RTC peer */
     function initialize() {
         connectionPairs = [];
         initializeUi();
+        connectSignallingServer();
     }
     RTCTest.initialize = initialize;
 })(RTCTest || (RTCTest = {}));

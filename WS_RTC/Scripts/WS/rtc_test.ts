@@ -9,6 +9,7 @@ module RTCTest {
     const MSG_OFFER: string = "offer";
     const MSG_ANSWER: string = "answer";
     const MSG_ICE: string = "ice";
+    const MSG_DISCONNECTED: string = "disconnected";
     
     /** P2P audio connection */
     class RTCAudioConnection {
@@ -20,7 +21,11 @@ module RTCTest {
 
         // WebRTC configuration
         private rtcConfig: RTCConfiguration = {
-            iceServers: []
+            iceServers: [{
+                urls: "turn:176.122.22.34",
+                username: "testuser",
+                credential: "testpass"
+            }]
         };
 
         // P2P connection
@@ -29,12 +34,18 @@ module RTCTest {
         // Remote peer audio output
         private remoteAudioElem: HTMLAudioElement;
 
+        private get debugId() {
+            return `*${this.remoteId.substr(23)}`;
+        }
+
         /** Send offer to remote party */
         public sendOffer(): void {
+            const baseMsg = `RTC, ${this.debugId}:`;
+
             this.connection.createOffer(this.offerOption)
                 .then((sdp: RTCSessionDescription) => {
                     // Local descriptor created
-                    logMessage("Offer created!");
+                    logMessage(`${baseMsg} Offer created`);
                     this.connection.setLocalDescription(sdp);
 
                     // Send offer message
@@ -45,7 +56,10 @@ module RTCTest {
                     };
                     sendMessage(offerMsg);
                 })
-                .catch(() => logMessage("Failed to create offer!"));
+                .catch(() => {
+                    let msg = `${baseMsg} Failed to create offer!`;
+                    return logMessage(msg);
+                });
         }
 
         /**
@@ -54,9 +68,11 @@ module RTCTest {
          */
         public setRemoteAnswer(answerData: any): void {
             let remoteSdp = new RTCSessionDescription(answerData);
+            const baseMsg = `RTC, ${this.debugId}: Remote description`;
+
             this.connection.setRemoteDescription(remoteSdp)
-                .then(() => logMessage("Remote description set!"))
-                .catch(() => logMessage("Remote description set error!"));
+                .then(() => logMessage(`${baseMsg} set!`))
+                .catch(() => logMessage(`${baseMsg} set error!`));
         }
 
         /**
@@ -73,13 +89,20 @@ module RTCTest {
          */
         public setRemoteOffer(offerData: any): void {
             let remoteDesc = new RTCSessionDescription(offerData);
+            const baseMsg1 = `RTC, ${this.debugId}: Remote description`;
+
+            // Set remote description
             this.connection.setRemoteDescription(remoteDesc)
-                .then(() => logMessage("Remote description set!"))
-                .catch(e => logMessage(`Remote descriptor error: ${e}`));
+                .then(() => logMessage(`${baseMsg1} set!`))
+                .catch(e => logMessage(`${baseMsg1} error: ${e}`));
+
+            const baseMsg2 = `RTC, ${this.debugId}: Answer`;
+
+            // Create answer
             this.connection.createAnswer(this.offerOption)
                 .then(answerSdp => {
                     // Answer sdp created
-                    logMessage("Answer created!");
+                    logMessage(`${baseMsg2} created!`);
                     this.connection.setLocalDescription(answerSdp);
 
                     let answerMessage = {
@@ -89,31 +112,42 @@ module RTCTest {
                     };
                     sendMessage(answerMessage);
                 })
-                .catch(e => logMessage(`Answer error: ${e}`));
+                .catch(e => logMessage(`${baseMsg2} error: ${e}`));
+        }
+
+        /** Remove resources associated with client */
+        public dispose(): void {
+            this.connection.close();
+            $(`#${this.remoteId}`).parents(".peer-audio").remove();
         }
 
         /** Connection state changed */
         private onStateChange(e: Event): void {
-            logMessage(`New state: ${this.connection.signalingState}`);
+            const connState = this.connection.connectionState;
+            const signState = this.connection.signalingState;
+            const iceState = this.connection.iceConnectionState;
+
+            const states = `C: ${connState}, S: ${signState}, I: ${iceState}`;
+
+            logMessage(`RTC, ${this.debugId}: States: ${states}`);
         }
 
         /** Got remote track */
         private onRemoteTrack(e: any): void {
-            const peerAudio = $("<audio controls>").attr("id", this.remoteId);
-            const jControlBlock = $("<p class=peer-audio>")
-                .append($("<h4>").text(this.remoteId))
-                .append(peerAudio);
-            $("#audioControls").append(jControlBlock);
-
-            this.remoteAudioElem = <HTMLAudioElement>peerAudio.get(0);
-
             if (e.stream) {
-                this.remoteAudioElem.srcObject = e.stream;
-            } else {
-                this.remoteAudioElem.srcObject = e.streams[0];
-            }
+                const peerAudio = $("<audio controls>").attr("id", this.remoteId);
+                const jControlBlock = $("<div class=peer-audio>")
+                    .append($("<h4>").text(this.remoteId))
+                    .append(peerAudio);
+                $("#audioControls").append(jControlBlock);
 
-            this.remoteAudioElem.play();
+                this.remoteAudioElem = <HTMLAudioElement>peerAudio.get(0);
+                this.remoteAudioElem.srcObject = e.stream;
+
+                this.remoteAudioElem.play();
+
+                logMessage(`RTC, ${this.debugId}: Got remote track`);
+            }
         }
 
         /** On ICE candidate */
@@ -132,8 +166,12 @@ module RTCTest {
 
             let iceHandler = this.onICECandidate.bind(this);
             this.connection.onicecandidate = iceHandler;
+
             let stateHandler = this.onStateChange.bind(this);
             this.connection.oniceconnectionstatechange = stateHandler;
+            this.connection.onsignalingstatechange = stateHandler;
+            this.connection.onconnectionstatechange = stateHandler;
+
             let trackHandler = this.onRemoteTrack.bind(this);
             this.connection.addEventListener("track", trackHandler);
             this.connection.addEventListener("addstream", trackHandler);
@@ -153,7 +191,7 @@ module RTCTest {
 
     var socket: WebSocket;
 
-    var labels: any;
+    var labels: any; // JQuery
 
     // Local audio output
     var myAudioElem: HTMLAudioElement;
@@ -191,7 +229,17 @@ module RTCTest {
             let newConnection = new RTCAudioConnection(id, localStream);
             newConnection.sendOffer();
             connectionPairs.push(newConnection);
+
+            logMessage(`Me -> ${id}. Conn. no: ${connectionPairs.length}`);
         }
+    }
+
+    /**
+     * Show client's id on page
+     * @param id Local id
+     */
+    function showLocalId(id: string): void {
+        $(".my-audio h4").append(`<br/>${id}`)
     }
 
     /**
@@ -225,9 +273,29 @@ module RTCTest {
         var newConnection = new RTCAudioConnection(remoteId, localStream);
         newConnection.setRemoteOffer(offerData);
         connectionPairs.push(newConnection);
+
+        logMessage(`${remoteId} -> Me. Conn. no: ${connectionPairs.length}`);
     }
 
-    // Process signalling server message
+    /**
+     * Remove disconnected client's resources
+     * @param remoteId Remote peer's id
+     */
+    function disposeClient(remoteId: string): void {
+        const pairToRemove = getPairById(remoteId);
+
+        if (pairToRemove != null) {
+            pairToRemove.dispose();
+            connectionPairs.splice(connectionPairs.indexOf(pairToRemove), 1);
+
+            logMessage(`WS: ${pairToRemove.remoteId} disconnected`);
+        }
+    }
+
+    /**
+     * Process signalling server message
+     * @param msg Message from server
+     */
     function processMessage(msg: any): void {
         let type: string = msg["Type"];
         let payload = msg["Data"];
@@ -237,6 +305,7 @@ module RTCTest {
             let readyIds = <string[]>payload;
             if (readyIds.length > 0) {
                 createConnectionPairs(readyIds);
+                showLocalId(remoteId);
             }
         } else if (type == MSG_OFFER) {
             getOfferFromPeer(remoteId, payload);
@@ -244,10 +313,15 @@ module RTCTest {
             gotRemoteAnswer(remoteId, payload);
         } else if (type == MSG_ICE) {
             gotICECandidate(remoteId, payload);
+        } else if (type == MSG_DISCONNECTED) {
+            disposeClient(remoteId);
         }
     }
 
-    // Send message to signalling server
+    /**
+     * Send message to signalling server
+     * @param msg Message to send
+     */
     function sendMessage(msg: any): void {
         socket.send(JSON.stringify(msg));
     }
@@ -260,6 +334,7 @@ module RTCTest {
         localStream = audioStream;
         // Listen local stream
         myAudioElem.srcObject = localStream;
+        myAudioElem.volume = 0.1;
         myAudioElem.play();
 
         // Show volume control
@@ -279,24 +354,24 @@ module RTCTest {
             audio: { sampleRate: 12000 },
             video: false
         }).then(gotLocalStream)
-          .catch(() => logMessage("Cannot access microphone!"));
+          .catch(() => logMessage("RTC: Cannot access microphone!"));
     }
 
-    // On connection
+    /** On connection */
     function socketConnected() {
-        logMessage("Connected to server!");
+        logMessage("WS: Connected to server!");
         labels.eq(0).removeClass("hidden");
 
         setTimeout(requestMediaStream, 1000);
     }
 
-    // On network error
+    /** On network error */
     function socketError() {
-        logMessage("Connection error!");
+        logMessage("WS: Connection error!");
         labels.eq(1).removeClass("hidden");
     }
 
-    // On receive data from server
+    //** On receive data from server */
     function socketMessage(e: MessageEvent) {
         var msg = JSON.parse(e.data);
         processMessage(msg);
@@ -308,7 +383,8 @@ module RTCTest {
         socket = new WebSocket(serverAddress);
 
         socket.onopen = socketConnected;
-        socket.onerror = socketError;
+        // Socket closing is also exception there
+        socket.onerror = socket.onclose = socketError;
         socket.onmessage = socketMessage;
     }
 
@@ -316,17 +392,13 @@ module RTCTest {
     function initializeUi() {
         labels = $("h2 .label");
         myAudioElem = <HTMLAudioElement>$("#myAudio")[0];
-
-        $(".controls .btn-default").on("click", function() {
-            $(this).attr("disabled", "disabled");
-            connectSignallingServer();
-        });
     }
 
     /** Initialize RTC peer */
     export function initialize() {
         connectionPairs = [];
         initializeUi();
+        connectSignallingServer();
     }
 }
 
